@@ -1,48 +1,37 @@
-const CACHE = 'kakeibo-v2';
-const ASSETS = [
-  './index.html',
-  './manifest.json'
-];
+// キャッシュ名（変更でiOSに強制更新させる）
+const CACHE = 'kakeibo-v3';
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => c.addAll(['./index.html', './manifest.json']))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
+// fetchイベントは一切介入しない
+// → すべてのリクエスト（API含む）をブラウザに任せる
 self.addEventListener('fetch', e => {
-  const url = e.request.url;
-
-  // 外部APIは必ずネットワークへ（キャッシュ・介入なし）
+  // 自サイトのGETのみキャッシュ
   if (
-    url.includes('api.anthropic.com') ||
-    url.includes('cdn.jsdelivr.net') ||
-    url.includes('mcp.notion.com') ||
-    !url.startsWith(self.location.origin)
+    e.request.method !== 'GET' ||
+    !e.request.url.startsWith(self.location.origin)
   ) {
-    e.respondWith(fetch(e.request));
+    // POSTや外部URLはService Workerを完全スルー
     return;
   }
 
-  // 自サイトのリソースはキャッシュ優先
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      return cached || fetch(e.request).then(res => {
-        // GETリクエストのみキャッシュに保存
-        if (e.request.method === 'GET') {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      });
-    }).catch(() => caches.match('./index.html'))
+    caches.match(e.request).then(cached =>
+      cached || fetch(e.request).catch(() => caches.match('./index.html'))
+    )
   );
 });
