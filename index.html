@@ -128,6 +128,111 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 #install-banner button{background:var(--bg);color:var(--text);border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
 .settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border);font-size:14px;}
 .settings-row:last-child{border-bottom:none;}
+
+/* ─── CHAT UI ─── */
+#chat-wrap {
+  display: flex; flex-direction: column;
+  height: calc(100dvh - 180px);
+  border: 0.5px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: var(--bg2);
+}
+#chat-messages {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.chat-msg { display: flex; gap: 8px; align-items: flex-end; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-bubble {
+  max-width: 78%; padding: 10px 13px; border-radius: 18px;
+  font-size: 14px; line-height: 1.55; word-break: break-word;
+}
+.chat-msg.claude .chat-bubble {
+  background: var(--bg); color: var(--text);
+  border-bottom-left-radius: 4px;
+  border: 0.5px solid var(--border);
+}
+.chat-msg.user .chat-bubble {
+  background: var(--text); color: var(--bg);
+  border-bottom-right-radius: 4px;
+}
+.chat-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+  background: var(--bg3); border: 0.5px solid var(--border);
+}
+.chat-msg.user .chat-avatar { background: var(--text); color: var(--bg); }
+.chat-img-bubble {
+  max-width: 78%; border-radius: 14px; overflow: hidden;
+}
+.chat-img-bubble img { width: 100%; display: block; max-height: 200px; object-fit: cover; }
+.chat-typing {
+  display: flex; gap: 4px; padding: 10px 14px;
+  background: var(--bg); border-radius: 18px; border-bottom-left-radius: 4px;
+  border: 0.5px solid var(--border); width: fit-content;
+}
+.chat-typing span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text3); animation: bounce 1.2s infinite;
+}
+.chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+#chat-input-area {
+  border-top: 0.5px solid var(--border);
+  background: var(--bg); padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+#chat-image-preview {
+  position: relative; margin-bottom: 8px; width: fit-content;
+}
+#chat-image-preview img {
+  height: 64px; width: 64px; object-fit: cover;
+  border-radius: 10px; border: 0.5px solid var(--border);
+}
+#chat-image-preview button {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--text); color: var(--bg);
+  border: none; cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+#chat-input-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.chat-tool-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg2); border: 0.5px solid var(--border);
+  color: var(--text2); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.chat-tool-btn:active { background: var(--bg3); }
+#chat-text-input {
+  flex: 1; padding: 9px 13px; border-radius: 20px;
+  background: var(--bg2); border: 0.5px solid var(--border);
+  color: var(--text); font-size: 14px; font-family: var(--font); outline: none;
+}
+.chat-send-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--text); color: var(--bg);
+  border: none; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity 0.15s;
+}
+.chat-send-btn:active { opacity: 0.7; }
+.chat-send-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* 確認画面ボタン（チャット内） */
+.chat-action-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 10px; padding: 9px 16px;
+  background: var(--text); color: var(--bg);
+  border: none; border-radius: 20px; font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: var(--font);
+}
+.chat-action-btn:active { opacity: 0.75; }
 </style>
 </head>
 <body>
@@ -137,25 +242,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
   <!-- 登録 -->
   <div id="tab-scan">
-    <div class="page-header"><div class="page-title">家計簿</div><div class="page-sub">レシートを撮影して品目登録</div></div>
-    <input type="file" id="file-input-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
-    <input type="file" id="file-input-library" accept="image/*" style="display:none" onchange="handleFile(event)">
-    <div id="upload-zone">
-      <div class="upload-zone" style="margin-bottom:8px" onclick="document.getElementById('file-input-camera').click()">
-        <i class="ti ti-camera"></i>
-        <div class="uz-title">カメラで撮影</div>
-        <div class="uz-sub">レシートを今すぐ撮影する</div>
+    <div class="page-header"><div class="page-title">家計簿</div><div class="page-sub">Claudeと会話しながら登録</div></div>
+
+    <!-- チャットUI -->
+    <div id="chat-wrap">
+      <div id="chat-messages">
+        <div class="chat-msg claude">
+          <div class="chat-bubble">
+            こんにちは！レシートの写真を送ってください。内容を読み取って登録をお手伝いします📋<br><br>
+            「カメラで撮影」または「写真を選択」で画像を送ってみてください。
+          </div>
+        </div>
       </div>
-      <div class="upload-zone" onclick="document.getElementById('file-input-library').click()">
-        <i class="ti ti-photo"></i>
-        <div class="uz-title">写真を選択</div>
-        <div class="uz-sub">カメラロールから選ぶ</div>
+      <div id="chat-input-area">
+        <div id="chat-image-preview" style="display:none">
+          <img id="chat-preview-img" alt="選択した画像">
+          <button onclick="clearChatImage()"><i class="ti ti-x"></i></button>
+        </div>
+        <div id="chat-input-row">
+          <input type="file" id="file-input-camera" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
+          <input type="file" id="file-input-library" accept="image/*" style="display:none" onchange="handleFile(event)">
+          <button class="chat-tool-btn" onclick="document.getElementById('file-input-camera').click()" title="撮影"><i class="ti ti-camera"></i></button>
+          <button class="chat-tool-btn" onclick="document.getElementById('file-input-library').click()" title="ライブラリ"><i class="ti ti-photo"></i></button>
+          <input type="text" id="chat-text-input" placeholder="メッセージを入力..." onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="chat-send-btn" onclick="sendChat()" id="chat-send-btn"><i class="ti ti-send"></i></button>
+        </div>
       </div>
-    </div>
-    <div id="preview-wrap" style="display:none">
-      <img id="preview-img" class="preview-img" alt="プレビュー">
-      <button class="btn btn-primary" onclick="analyze()"><i class="ti ti-sparkles"></i> AIで読み取る</button>
-      <button class="btn btn-secondary" onclick="resetUpload()">別の画像を選択</button>
     </div>
   </div>
 
@@ -226,7 +338,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   <div id="items-container"></div>
   <div class="total-row"><span class="label">合計</span><span class="value" id="total-display">¥0</span></div>
   <button class="btn btn-primary" onclick="registerItems()" id="register-btn">Notionへ登録する</button>
-  <button class="btn btn-secondary" onclick="goHome()">やり直す</button>
+  <button class="btn btn-secondary" onclick="backToChat()">チャットに戻る</button>
 </div>
 
 <!-- SUCCESS -->
@@ -346,8 +458,16 @@ function save(){
   localStorage.setItem('kk_hist', JSON.stringify(allHist));
 }
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
-function goHome(){showScreen('screen-home');resetUpload();}
-function goStock(){showScreen('screen-home');navTo('stock');}
+function goHome(){
+  showScreen('screen-home');
+  resetUpload();
+  // チャットは保持（リセットしない）
+  navTo('scan');
+}
+function goStock(){
+  showScreen('screen-home');
+  navTo('stock');
+}
 
 function navTo(tab){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
@@ -359,36 +479,212 @@ function navTo(tab){
   if(tab==='settings') renderSettings();
 }
 
-function handleFile(e){
-  const file=e.target.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=ev=>{imgBase64=ev.target.result.split(',')[1];document.getElementById('preview-img').src=ev.target.result;document.getElementById('upload-zone').style.display='none';document.getElementById('preview-wrap').style.display='block';};
+// ─── CHAT STATE ───
+let chatImageBase64 = null;
+let chatHistory = [];
+let isChatLoading = false;
+
+function handleFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    chatImageBase64 = ev.target.result.split(',')[1];
+    const preview = document.getElementById('chat-image-preview');
+    document.getElementById('chat-preview-img').src = ev.target.result;
+    preview.style.display = 'block';
+    // 画像選択したら自動送信
+    sendChat();
+  };
   reader.readAsDataURL(file);
 }
-function resetUpload(){imgBase64=null;document.getElementById('file-input-camera').value='';document.getElementById('file-input-library').value='';document.getElementById('upload-zone').style.display='';document.getElementById('preview-wrap').style.display='none';}
 
-const PROMPT=`あなたは日本語レシート読み取り専門AIです。JSONのみ返してください（説明・マークダウン不要）。
-ルール: 半角カタカナ→全角, 記号除去(◆*#), 数量分離, confidence付与
-カテゴリは必ず次のいずれか: 食品|日用品|飲料|衣類|医薬品|その他
-{
-  "store":"店名","date":"YYYY-MM-DD（今日:${new Date().toISOString().split('T')[0]}）",
-  "items":[{"name":"商品名","qty":1,"price":税込整数,"category":"食品|日用品|飲料|衣類|医薬品|その他","confidence":"high|mid|low","raw":"原文"}],
-  "total":合計
-}`;
-
-async function analyze(){
-  if(!imgBase64) return;
-  showScreen('screen-loading');
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
-        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:imgBase64}},{type:'text',text:PROMPT}]}]})});
-    const data=await res.json();
-    const parsed=JSON.parse(data.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim());
-    renderConfirm(parsed);
-  }catch{renderConfirm(demo());}
+function clearChatImage() {
+  chatImageBase64 = null;
+  document.getElementById('file-input-camera').value = '';
+  document.getElementById('file-input-library').value = '';
+  document.getElementById('chat-image-preview').style.display = 'none';
 }
-function demo(){return{store:'ダイレックス 前原店',date:new Date().toISOString().split('T')[0],items:[{name:'だいこん',qty:1,price:214,category:'食品',confidence:'high',raw:'だいこん'},{name:'銀鮭切身',qty:1,price:448,category:'食品',confidence:'high',raw:'銀鮭切身'},{name:'極寒素麺',qty:1,price:189,category:'食品',confidence:'mid',raw:'極寒　素麺'}],total:851};}
+
+function resetUpload() {
+  clearChatImage();
+}
+
+function scrollChat() {
+  const el = document.getElementById('chat-messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function addMessage(role, content, isHTML=false) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  const avatar = role === 'claude'
+    ? `<div class="chat-avatar">🤖</div>`
+    : `<div class="chat-avatar"><i class="ti ti-user" style="font-size:14px"></i></div>`;
+
+  if (typeof content === 'string' && content.startsWith('__IMG__')) {
+    const src = content.replace('__IMG__', '');
+    div.innerHTML = `${avatar}<div class="chat-img-bubble"><img src="${src}" alt="レシート画像"></div>`;
+  } else if (isHTML) {
+    div.innerHTML = `${avatar}<div class="chat-bubble">${content}</div>`;
+  } else {
+    div.innerHTML = `${avatar}<div class="chat-bubble">${content}</div>`;
+  }
+  msgs.appendChild(div);
+  scrollChat();
+  return div;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg claude';
+  div.id = 'chat-typing';
+  div.innerHTML = `<div class="chat-avatar">🤖</div><div class="chat-typing"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(div);
+  scrollChat();
+}
+function removeTyping() {
+  const el = document.getElementById('chat-typing');
+  if (el) el.remove();
+}
+
+async function sendChat() {
+  if (isChatLoading) return;
+  const textInput = document.getElementById('chat-text-input');
+  const userText = textInput.value.trim();
+  const hasImage = !!chatImageBase64;
+
+  if (!userText && !hasImage) return;
+
+  // ユーザーメッセージ表示
+  if (hasImage) {
+    const imgSrc = document.getElementById('chat-preview-img').src;
+    addMessage('user', `__IMG__${imgSrc}`);
+    if (userText) addMessage('user', userText);
+  } else {
+    addMessage('user', userText);
+  }
+  textInput.value = '';
+
+  // 会話履歴にユーザーメッセージを追加
+  const userContent = [];
+  if (hasImage) {
+    userContent.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: chatImageBase64 } });
+  }
+  userContent.push({ type: 'text', text: userText || 'このレシートを読み取って登録内容を確認させてください。' });
+  chatHistory.push({ role: 'user', content: userContent });
+
+  clearChatImage();
+  isChatLoading = true;
+  document.getElementById('chat-send-btn').disabled = true;
+
+  addTyping();
+
+  const SYSTEM_PROMPT = `あなたは日本語レシートの読み取りと家計簿登録をサポートするAIアシスタントです。
+
+## レシートが送られてきたとき
+以下のルールで読み取り、必ず会話形式で結果を返してください：
+1. 半角カタカナ→全角カタカナに変換
+2. 商品コード・記号（*,#,→,◆）は商品名から除去
+3. 数量表記（×2, @199×2個 など）は数量として分離
+4. 値引き・割引は商品リストに含めない
+5. カテゴリは必ず次のいずれか：食品 / 日用品 / 飲料 / 衣類 / 医薬品 / その他
+6. 保管場所は次のいずれか：冷蔵個上 / 冷凍庫 / 野菜室 / 冷暗所 / 戸棚 / 納戸
+
+## 返答フォーマット（レシートを受け取ったとき）
+読み取り結果を自然な日本語で伝えてから、最後に必ず以下のJSONブロックを含めてください：
+
+\`\`\`json
+{
+  "store": "店名",
+  "date": "YYYY-MM-DD",
+  "items": [
+    {
+      "name": "商品名",
+      "qty": 1,
+      "price": 金額,
+      "category": "カテゴリ",
+      "storage": "保管場所",
+      "remain": "満量",
+      "confidence": "high/mid/low",
+      "note": "読み取りに不明点があれば記載"
+    }
+  ],
+  "total": 合計金額
+}
+\`\`\`
+
+読み取りに自信がない箇所はconfidence: "low"にして、noteに理由を書いてください。
+
+## ユーザーから修正依頼があったとき
+「○○は△△に変更して」などの修正依頼には、修正後のJSONブロックを再度出力してください。
+
+## 登録確認ボタン
+JSONを出力した後は必ず「この内容でよければ「確認画面へ」ボタンを押してください」と伝えてください。
+
+## それ以外の質問
+在庫管理や家計簿に関する質問には普通に会話で答えてください。
+今日の日付：${new Date().toISOString().split('T')[0]}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: SYSTEM_PROMPT,
+        messages: chatHistory
+      })
+    });
+    const data = await res.json();
+    const replyText = data.content.map(c => c.text || '').join('');
+
+    // 会話履歴に追加
+    chatHistory.push({ role: 'assistant', content: replyText });
+
+    removeTyping();
+
+    // JSONブロックを検出してパース
+    const jsonMatch = replyText.match(/```json\n?([\s\S]*?)```/);
+    let parsed = null;
+    if (jsonMatch) {
+      try { parsed = JSON.parse(jsonMatch[1].trim()); } catch {}
+    }
+
+    // テキスト部分（JSONブロック除く）を表示
+    const displayText = replyText
+      .replace(/```json[\s\S]*?```/g, '')
+      .trim()
+      .replace(/\n/g, '<br>');
+
+    if (parsed) {
+      // 確認画面ボタン付きで表示
+      const html = `${displayText}<br><br>
+        <button class="chat-action-btn" onclick="goToConfirm()">
+          <i class="ti ti-clipboard-check"></i> 確認画面へ
+        </button>`;
+      addMessage('claude', html, true);
+      // パース結果を保持
+      window._pendingReceipt = parsed;
+    } else {
+      addMessage('claude', displayText.replace(/\n/g, '<br>'), true);
+    }
+
+  } catch (err) {
+    removeTyping();
+    addMessage('claude', 'エラーが発生しました。もう一度お試しください。');
+  }
+
+  isChatLoading = false;
+  document.getElementById('chat-send-btn').disabled = false;
+}
+
+function goToConfirm() {
+  if (!window._pendingReceipt) return;
+  renderConfirm(window._pendingReceipt);
+}
 
 function renderConfirm(data){
   items=data.items.map(it=>({...it,category:normalizeCategory(it.category),volume:guessVolume(it.name),storage:guessStorage(it.name,normalizeCategory(it.category)),lastPurchase:getLastPurchase(it.name),remain:'満量',unboxed:0,inUse:0}));
@@ -634,6 +930,12 @@ window.addEventListener('beforeinstallprompt',e=>{
 window.addEventListener('appinstalled',()=>document.getElementById('install-banner').classList.remove('show'));
 
 document.getElementById('purchase-date').value=new Date().toISOString().split('T')[0];
+
+function backToChat() {
+  showScreen('screen-home');
+  navTo('scan');
+}
+
 </script>
 </body>
 </html>
